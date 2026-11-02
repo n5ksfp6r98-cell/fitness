@@ -1,4 +1,4 @@
-// Sicherung aller Trainingsdaten aus Supabase als Tabellen (CSV für Excel/Numbers) + Rohdaten (JSON).
+// Sicherung aller Trainingsdaten aus Supabase als Excel-Tabelle (Training.xlsx) + Rohdaten (JSON).
 // Aufruf automatisch: node tools/backup.mjs <Zielordner>
 //   Zugangsdaten nur im macOS-Schlüsselbund (nie in Dateien):
 //   Dienst "fitness-supabase-url" und "fitness-supabase-backup-key"
@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { UNITS } from '../plan.js';
+import { xlsx } from './xlsx.mjs';
 
 const out = path.resolve(process.argv[2] || 'Backup');
 const fromFile = process.argv[3] === '--from' ? process.argv[4] : null;
@@ -33,10 +34,9 @@ const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const SHIFT = { frueh: 'Früh', spaet: 'Spät' };
 const STATUS = { fertig: 'erledigt', aktiv: 'offen', uebersprungen: 'übersprungen' };
 const wd = d => DAYS[new Date(d + 'T12:00:00').getDay()];
-const num = v => (v === '' || v == null ? '' : String(v).replace('.', ','));
-const csv = rows => '﻿' + rows.map(r => r.map(v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(';')).join('\r\n') + '\r\n';
+const num = v => (v === '' || v == null ? '' : Number(v));
 // Erst in Temp-Datei schreiben, dann umbenennen: iCloud sieht nie eine halbe Datei
-const write = (name, text) => { const f = path.join(out, name); fs.writeFileSync(f + '.tmp', text); fs.renameSync(f + '.tmp', f); };
+const write = (name, data) => { const f = path.join(out, name); fs.writeFileSync(f + '.tmp', data); fs.renameSync(f + '.tmp', f); };
 
 const rows = await all();
 const live = rows.filter(r => !r.deleted);
@@ -60,8 +60,10 @@ for (const d of live.filter(r => r.kind === 'supp_day').sort((a, b) => a.day.loc
   supp.push([d.day, wd(d.day), ...items.map(i => (d.data.checked?.[i.id] ? 'ja' : ''))]);
 
 fs.mkdirSync(path.join(out, 'Verlauf'), { recursive: true });
-write('Training.csv', csv(training));
-write('Supplemente.csv', csv(supp));
+write('Training.xlsx', xlsx([
+  { name: 'Training', rows: training, widths: [12, 5, 8, 26, 13, 26, 6, 11, 10, 8, 8] },
+  { name: 'Supplemente', rows: supp, widths: [12, 5, ...items.map(i => Math.max(10, i.name.length + 2))] },
+]));
 write('Rohdaten.json', JSON.stringify(rows, null, 1));
 // Zusätzlich eine Rohdaten-Kopie pro Tag (falls etwas versehentlich gelöscht wird); die letzten 60 bleiben
 const today = new Date().toISOString().slice(0, 10);
