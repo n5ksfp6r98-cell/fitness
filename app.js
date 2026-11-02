@@ -2,7 +2,7 @@ import { UNITS, PICK, PFLICHT, WEEK, KAMPF, order, allExercises } from './plan.j
 import * as S from './store.js';
 
 const $app = document.getElementById('app');
-const ui = { tab: 'heute', session: null, histEx: null, histShift: 'frueh', histMode: 'ex', modal: null, drafts: {}, rest: null, timer: null, suppEdit: false, auth: 'login', authMsg: '', exFrom: null, exTo: null };
+const ui = { tab: 'heute', session: null, histEx: null, histShift: 'frueh', histMode: 'ex', modal: null, drafts: {}, rest: null, timer: null, suppEdit: false, authMsg: '', exFrom: null, exTo: null };
 let client = null;
 let authed = false;
 
@@ -500,13 +500,12 @@ function viewMore() {
 
 // ---------- Login ----------
 function renderLogin() {
-  const reg = ui.auth === 'register';
-  $app.innerHTML = `<main class="page login"><h1>Fitness</h1><p class="muted">${reg ? 'Konto einmalig anlegen.' : 'Anmelden'}</p>
+  // Registrierung ist in Supabase gesperrt; das eine Konto wird im Supabase-Dashboard angelegt.
+  $app.innerHTML = `<main class="page login"><h1>Fitness</h1><p class="muted">Anmelden</p>
     <form id="auth"><label class="field">E-Mail<input type="email" name="email" autocomplete="username" required></label>
-    <label class="field">Passwort<input type="password" name="pw" autocomplete="${reg ? 'new-password' : 'current-password'}" minlength="8" required></label>
-    <button class="btn big" type="submit">${reg ? 'Konto anlegen' : 'Anmelden'}</button></form>
+    <label class="field">Passwort<input type="password" name="pw" autocomplete="current-password" required></label>
+    <button class="btn big" type="submit">Anmelden</button></form>
     <p class="msg">${esc(ui.authMsg)}</p>
-    <button class="btn ghost small" data-a="authMode">${reg ? 'Zurück zur Anmeldung' : 'Erstes Mal? Konto anlegen'}</button>
     ${!navigator.onLine ? '<p class="muted small">Für die erste Anmeldung braucht das Handy Internet.</p>' : ''}
     ${S.owner() ? '<button class="btn ghost small" data-a="loginBack">Ohne Anmeldung weiter</button>' : ''}</main>`;
 }
@@ -515,9 +514,8 @@ async function submitAuth(form) {
   if (!client) { ui.authMsg = 'Keine Verbindung zum Server konfiguriert.'; return render(); }
   const email = form.email.value.trim(), pw = form.pw.value;
   ui.authMsg = '…'; renderLoginMsg();
-  const res = ui.auth === 'register' ? await client.auth.signUp({ email, password: pw }) : await client.auth.signInWithPassword({ email, password: pw });
+  const res = await client.auth.signInWithPassword({ email, password: pw });
   if (res.error) { ui.authMsg = res.error.message === 'Invalid login credentials' ? 'E-Mail oder Passwort falsch.' : res.error.message; return renderLoginMsg(); }
-  if (!res.data.session) { ui.authMsg = 'Konto angelegt. Bitte E-Mail bestätigen und dann anmelden.'; ui.auth = 'login'; return render(); }
   onSession(res.data.session);
 }
 function renderLoginMsg() { const m = document.querySelector('.msg'); if (m) m.textContent = ui.authMsg; }
@@ -629,7 +627,6 @@ const actions = {
   logout: async () => { await client?.auth.signOut(); authed = false; S.clearClient(); },
   loginBack: () => { ui.forceLogin = false; },
   relogin: () => { ui.forceLogin = true; renderLogin(); },
-  authMode: () => { ui.auth = ui.auth === 'login' ? 'register' : 'login'; ui.authMsg = ''; renderLogin(); },
   modalOk: () => { const m = ui.modal; ui.modal = null; m.onOk?.(); },
   modalClose: () => { ui.modal = null; },
 };
@@ -650,7 +647,7 @@ document.addEventListener('click', async e => {
   const keepTimer = ['timerToggle', 'timerSkip'].includes(el.dataset.a);
   await fn(el.dataset.v, el);
   if (keepTimer) return;
-  if (el.dataset.a === 'relogin' || el.dataset.a === 'authMode') return;
+  if (el.dataset.a === 'relogin') return;
   render();
 });
 document.addEventListener('input', e => {

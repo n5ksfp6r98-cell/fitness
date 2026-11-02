@@ -16,6 +16,8 @@ create index if not exists records_user_server on public.records (user_id, serve
 create index if not exists records_user_kind_day on public.records (user_id, kind, day);
 
 alter table public.records enable row level security;
+-- Ohne Login (Rolle anon) keinerlei Zugriff, zusätzlich zu RLS.
+revoke all on public.records from anon;
 drop policy if exists "own rows" on public.records;
 create policy "own rows" on public.records for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
