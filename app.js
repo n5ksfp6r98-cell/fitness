@@ -5,6 +5,7 @@ const $app = document.getElementById('app');
 const ui = { tab: 'heute', session: null, histEx: null, histShift: 'frueh', histMode: 'ex', modal: null, drafts: {}, rest: null, timer: null, suppEdit: false, authMsg: '', exFrom: null, exTo: null };
 let client = null;
 let authed = false;
+let authChecked = false; // erst nach dem Laden der Sitzung 'nicht angemeldet' zeigen
 
 // ---------- Datum ----------
 const pad = n => String(n).padStart(2, '0');
@@ -158,7 +159,8 @@ function syncChip() {
   let txt, cls = '';
   if (!navigator.onLine) { txt = p ? `Offline · ${p} gespeichert, wird später übertragen` : 'Offline · alles lokal gespeichert'; cls = 'off'; }
   else if (DEV) { txt = 'Testmodus · nur lokal'; cls = 'off'; }
-  else if (!authed) { txt = 'Nicht angemeldet · nur auf dem Gerät'; cls = 'off'; }
+  else if (!authed && authChecked) { txt = 'Nicht angemeldet · nur auf dem Gerät'; cls = 'off'; }
+  else if (!authed) txt = 'Verbinde …';
   else if (S.status.error) { txt = 'Sync-Fehler: ' + S.status.error; cls = 'err'; }
   else if (S.status.syncing || p) txt = 'Synchronisiere …';
   else txt = 'Synchronisiert';
@@ -179,7 +181,7 @@ function viewToday() {
   const skipped = todays.some(s => s.data.status === 'uebersprungen');
   const next = nextStrength(day);
   let h = `<header class="top"><div><div class="muted">${DAYS[weekday(day)]}, ${dm(day)}</div><h1>Heute</h1></div>${syncChip()}</header>`;
-  if (!authed && S.owner() !== 'dev') h += `<div class="card note">Nicht angemeldet. Eingaben werden auf dem Gerät gespeichert. <button class="btn small" data-a="relogin">Anmelden</button></div>`;
+  if (!authed && authChecked && S.owner() !== 'dev') h += `<div class="card note">Nicht angemeldet. Eingaben werden auf dem Gerät gespeichert. <button class="btn small" data-a="relogin">Anmelden</button></div>`;
 
   // Schicht
   h += `<section class="card"><div class="row between"><b>Schicht diese Woche</b>
@@ -697,6 +699,7 @@ async function boot() {
   render();
   if (!client) return;
   const { data } = await client.auth.getSession().catch(() => ({ data: {} }));
+  authChecked = true;
   if (data?.session) onSession(data.session);
   else render();
 }
