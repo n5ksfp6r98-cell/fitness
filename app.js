@@ -606,8 +606,11 @@ const actions = {
   histEx: v => { ui.histEx = v || null; window.scrollTo(0, 0); },
   histShift: v => { ui.histShift = v; },
   exCopy: async () => {
-    try { await navigator.clipboard.writeText(exportText()); markExport(); ui.modal = { title: 'Kopiert', lines: ['In den Trainings-Chat einfügen.'] }; }
-    catch { const t = document.querySelector('.preview'); t.select(); document.execCommand('copy'); markExport(); }
+    let ok = false;
+    try { await navigator.clipboard.writeText(exportText()); ok = true; }
+    catch { const t = document.querySelector('.preview'); t.select(); ok = document.execCommand('copy'); }
+    if (ok) markExport();
+    ui.modal = ok ? { title: 'Kopiert', lines: ['In den Trainings-Chat einfügen.'] } : { title: 'Kopieren ging nicht', lines: ['Bitte "Teilen" oder "CSV-Datei" nutzen.'] };
   },
   exShare: async () => {
     const text = exportText();
