@@ -1,18 +1,22 @@
 // Sicherung aller Trainingsdaten aus Supabase als Tabellen (CSV für Excel/Numbers) + Rohdaten (JSON).
-// Aufruf: node tools/backup.mjs <Zielordner>
-// Zugangsdaten nur im macOS-Schlüsselbund (nie in Dateien):
+// Aufruf automatisch: node tools/backup.mjs <Zielordner>
+//   Zugangsdaten nur im macOS-Schlüsselbund (nie in Dateien):
 //   Dienst "fitness-supabase-url" und "fitness-supabase-backup-key"
+// Aufruf von Hand: node tools/backup.mjs <Zielordner> --from <records.json>
+//   (records.json = alle Zeilen der Tabelle records, z. B. über die angemeldete App geholt)
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { UNITS } from '../plan.js';
 
 const out = path.resolve(process.argv[2] || 'Backup');
+const fromFile = process.argv[3] === '--from' ? process.argv[4] : null;
 const secret = s => execFileSync('security', ['find-generic-password', '-s', s, '-w'], { encoding: 'utf8' }).trim();
-const url = secret('fitness-supabase-url');
-const key = secret('fitness-supabase-backup-key');
 
 async function all() {
+  if (fromFile) return JSON.parse(fs.readFileSync(fromFile, 'utf8'));
+  const url = secret('fitness-supabase-url');
+  const key = secret('fitness-supabase-backup-key');
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const r = await fetch(`${url}/rest/v1/records?select=*&order=server_at.asc`, {
