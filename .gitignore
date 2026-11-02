@@ -1,0 +1,15 @@
+# Nur App-Code gehört ins Repo. Niemals persönliche Daten oder Zugangsdaten.
+config.js
+.env*
+*.pem
+*.key
+.claude/
+.DS_Store
+# Sicherheitsnetz, falls etwas aus dem Elternordner hier landet
+Gesundheit/
+kontext/
+notizen/
+blutwerte/
+plan.md
+CLAUDE.md
+*.pdf
