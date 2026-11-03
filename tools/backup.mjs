@@ -48,7 +48,9 @@ for (const s of sessions) {
   const unit = UNITS[s.data.type];
   const status = unit?.kind === 'kampf' && s.data.status === 'uebersprungen' ? 'weggelassen' : STATUS[s.data.status] || s.data.status;
   const base = [s.day, wd(s.day), SHIFT[s.data.shift] || '', unit?.name || s.data.type, status];
-  const own = sets.filter(x => x.data.session === s.id).sort((a, b) => a.data.no - b.data.no);
+  // Reihenfolge wie im Plan: Übung für Übung, darin Satz 1, 2, 3 …
+  const pos = n => { const i = unit?.ex?.findIndex(e => e.n === n) ?? -1; return i < 0 ? 99 : i; };
+  const own = sets.filter(x => x.data.session === s.id).sort((a, b) => pos(a.data.ex) - pos(b.data.ex) || a.data.no - b.data.no);
   const tail = [s.data.notfall ? 'ja' : 'nein', s.data.feel || ''];
   if (own.length) for (const x of own) training.push([...base, x.data.ex, x.data.no, num(x.data.w), num(x.data.r), ...tail]);
   else training.push([...base, '', '', '', '', ...tail]);
