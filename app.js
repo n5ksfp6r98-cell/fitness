@@ -254,14 +254,15 @@ function viewToday() {
 }
 
 // Die Liste selbst liegt nur in Supabase (kind 'supplements'), nicht im Code.
+// Abgesetzte Supplements (off: true) bleiben gespeichert, damit alte Haken im Verlauf ihren Namen behalten.
 function suppList() { return S.get('supplements')?.data.items || []; }
 function viewSupps(day) {
-  const items = suppList();
+  const items = suppList().filter(it => !it.off);
   const checked = S.get('supp:' + day)?.data.checked || {};
   if (ui.suppEdit) {
     return `<section class="card"><div class="row between"><b>Supplements bearbeiten</b><button class="btn small" data-a="suppSave">Fertig</button></div>
       <p class="muted small">Dosis und Zeit trägst du selbst ein (Herstellerangabe oder Arzt).</p>
-      ${items.map((it, i) => `<div class="suppedit"><input data-supp="${i}" data-f="name" value="${esc(it.name)}" placeholder="Name">
+      ${ui.suppDraft.map((it, i) => it.off ? '' : `<div class="suppedit"><input data-supp="${i}" data-f="name" value="${esc(it.name)}" placeholder="Name">
         <input data-supp="${i}" data-f="dose" value="${esc(it.dose)}" placeholder="Dosis"><input data-supp="${i}" data-f="time" value="${esc(it.time)}" placeholder="Zeit">
         <button class="btn ghost small" data-a="suppDel" data-v="${i}">✕</button></div>`).join('')}
       <button class="btn ghost" data-a="suppAdd">+ Supplement</button></section>`;
@@ -553,8 +554,8 @@ const actions = {
   },
   suppEdit: () => { ui.suppEdit = true; ui.suppDraft = suppList().map(x => ({ ...x })); },
   suppAdd: () => { ui.suppDraft.push({ id: 'i' + Date.now(), name: '', dose: '', time: '' }); S.put('supplements', 'supplements', null, { items: ui.suppDraft }); },
-  suppDel: v => { ui.suppDraft.splice(Number(v), 1); S.put('supplements', 'supplements', null, { items: ui.suppDraft }); },
-  suppSave: () => { S.put('supplements', 'supplements', null, { items: ui.suppDraft.filter(x => x.name.trim()) }); ui.suppEdit = false; },
+  suppDel: v => { ui.suppDraft[Number(v)].off = true; S.put('supplements', 'supplements', null, { items: ui.suppDraft }); },
+  suppSave: () => { S.put('supplements', 'supplements', null, { items: ui.suppDraft.filter(x => x.off || x.name.trim()) }); ui.suppEdit = false; },
   notfall: () => { const s = S.get(ui.session); S.patch(s.id, { notfall: !s.data.notfall }); },
   step: (v, el) => {
     const s = S.get(ui.session), ex = UNITS[s.data.type].ex[v], d = draftFor(s, v, ex);

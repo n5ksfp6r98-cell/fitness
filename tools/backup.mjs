@@ -57,7 +57,7 @@ for (const s of sessions) {
 }
 
 const items = live.find(r => r.kind === 'supplements')?.data.items || [];
-const supp = [['Datum', 'Tag', ...items.map(i => i.name)]];
+const supp = [['Datum', 'Tag', ...items.map(i => i.name + (i.off ? ' (abgesetzt)' : ''))]];
 for (const d of live.filter(r => r.kind === 'supp_day').sort((a, b) => a.day.localeCompare(b.day)))
   supp.push([d.day, wd(d.day), ...items.map(i => (d.data.checked?.[i.id] ? 'ja' : ''))]);
 
