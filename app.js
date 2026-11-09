@@ -44,7 +44,12 @@ function shiftOf(day) {
   return (best.d / 7) % 2 === 0 ? best.w.data.shift : other(best.w.data.shift);
 }
 function setShift(day, shift) { S.put('week:' + monday(day), 'week', monday(day), { shift }); }
-function slot(day) { return WEEK[phaseOf(day)][shiftOf(day)][weekday(day)]; }
+// Sevbans Wunsch (09.11.2026): Zirkel und Technik sind nie Tagesvorschlag, nur optional an diesem Tag.
+const OPTIONAL = ['zirkel', 'technik'];
+function slot(day) {
+  const s = WEEK[phaseOf(day)][shiftOf(day)][weekday(day)];
+  return OPTIONAL.includes(s.main) ? { opt: [s.main] } : s;
+}
 
 // ---------- Einheiten ----------
 const sessions = () => S.all('session').sort((a, b) => (a.day + (a.data.startedAt || '')).localeCompare(b.day + (b.data.startedAt || '')));
@@ -246,7 +251,7 @@ function viewToday() {
   // Wochenplan
   h += `<details class="card"><summary><b>Wochenplan (${SHIFT[shift]}schicht${phaseOf(day) === 'dez' ? ', mit Kickboxen' : ''})</b></summary><table class="plan">${DAYS.map((d, i) => {
     const dd = addDays(mon, i);
-    const s = WEEK[phaseOf(dd)][shiftOf(dd)][i];
+    const s = slot(dd);
     const ses = sessionsOn(dd).map(x => `${unitName(x.data.type)}${x.data.status === 'uebersprungen' ? ' (übersprungen)' : x.data.status === 'fertig' ? ' ✓' : ''}`).join(', ');
     return `<tr class="${dd === day ? 'now' : ''}"><td>${d.slice(0, 2)}</td><td>${s.main ? esc(s.label || seqName(s.main)) : s.opt ? esc(s.label || 'frei (' + UNITS[s.opt[0]].name + ' optional)') : 'frei'}</td><td class="muted">${esc(ses)}</td></tr>`;
   }).join('')}</table><p class="muted small">Reihenfolge fix, Tage flexibel. Kraft vor Kampfsport.</p></details>`;
