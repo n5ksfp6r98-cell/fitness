@@ -34,3 +34,10 @@ end $$;
 drop trigger if exists records_lww on public.records;
 create trigger records_lww before insert or update on public.records
   for each row execute function public.records_lww();
+
+-- Keepalive (23.11.2026): Supabase Free pausiert Projekte nach 7 Tagen ohne Aktivität.
+-- Die GitHub Action "Keepalive" ruft alle 2 Tage diese Funktion auf. Sie liest keine Daten.
+create or replace function public.keepalive() returns timestamptz
+  language sql stable security invoker set search_path = '' as $$ select now() $$;
+revoke all on function public.keepalive() from public;
+grant execute on function public.keepalive() to anon, authenticated;
